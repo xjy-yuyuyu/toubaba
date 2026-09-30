@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>投票吧 · 手机投票</title>
+<style>
+  :root{
+    --main:#2563eb; --main-bg:#eef4ff; --bg:#f5f6f8; --card:#ffffff;
+    --text:#1f2329; --sub:#8a919f; --line:#e6e8ec; --danger:#c53030;
+    --warn:#b45309; --radius:10px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--text); font-size:15px;
+  }
+  #app{max-width:480px;margin:0 auto;min-height:100%;position:relative;background:var(--bg);box-shadow:0 0 24px rgba(0,0,0,.05)}
+
+  /* ===== 顶栏 ===== */
+  .topbar{
+    position:sticky;top:0;z-index:20;background:var(--card);
+    border-bottom:1px solid var(--line);
+    padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;
+  }
+  .logo{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .logo::before{content:"";width:8px;height:18px;background:var(--main);border-radius:2px}
+  .top-user{display:flex;align-items:center;gap:7px;border:1px solid var(--line);
+    padding:4px 10px 4px 5px;border-radius:999px;font-size:13px;color:var(--text);
+    cursor:pointer;max-width:150px;background:#fff}
+  .top-user .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* 首字头像 */
+  .av{border-radius:50%;color:#fff;display:inline-flex;align-items:center;justify-content:center;
+    font-weight:600;flex-shrink:0}
+
+  /* ===== 主体 ===== */
+  main{padding:14px 14px 92px}
+  .view{display:none}
+  .view.active{display:block;animation:fadein .15s ease}
+  @keyframes fadein{from{opacity:.5}to{opacity:1}}
+
+  /* 云端状态条 */
+  .cloud-bar{
+    display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px;font-size:13px;color:var(--sub);margin-bottom:12px;
+  }
+  .cloud-bar.err{border-color:#f3c8c8;background:#fdf6f6;color:var(--danger)}
+  .cloud-bar .lnk{color:var(--main);cursor:pointer;font-weight:600;white-space:nowrap}
+  .cloud-bar .dot{width:8px;height:8px;border-radius:50%;background:#c2c8d0;flex-shrink:0}
+  .cloud-bar.ok .dot{background:#047857}
+  .cloud-bar.err .dot{background:var(--danger)}
+
+  /* ===== 大厅 ===== */
+  .search-row{margin-bottom:12px}
+  .search-row input{
+    width:100%;border:1px solid var(--line);outline:none;background:var(--card);
+    padding:10px 13px;border-radius:8px;font-size:14px;color:var(--text);
+  }
+  .search-row input:focus{border-color:var(--main)}
+  .sort-tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:12px}
+  .sort-tabs button{
+    flex:1;border:none;background:none;color:var(--sub);font-size:14px;
+    padding:10px 0;cursor:pointer;font-weight:500;position:relative;
+  }
+  .sort-tabs button.on{color:var(--main);font-weight:600}
+  .sort-tabs button.on::after{content:"";position:absolute;left:28%;right:28%;bottom:-1px;height:2px;background:var(--main)}
+  .cat-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+  .cat-row::-webkit-scrollbar{display:none}
+  .cat-row button{
+    flex-shrink:0;border:1px solid var(--line);background:#fff;color:var(--sub);font-size:13px;
+    padding:5px 13px;border-radius:999px;cursor:pointer;
+  }
+  .cat-row button.on{border-color:var(--main);color:var(--main);background:var(--main-bg);font-weight:600}
+
+  .list{display:flex;flex-direction:column;gap:10px}
+  .vcard{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 15px;cursor:pointer;
+  }
+  .vcard:active{background:#fafbfc}
+  .vcard .row1{display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap}
+  .chip{font-size:11px;padding:2px 8px;border-radius:4px;background:#f0f1f3;color:var(--sub)}
+  .chip.run{background:var(--main-bg);color:var(--main)}
+  .chip.soon{background:#fdf3e0;color:var(--warn)}
+  .chip.end{background:#f0f1f3;color:var(--sub)}
+  .vcard h3{font-size:16px;font-weight:600;margin-bottom:5px;line-height:1.45}
+  .vcard .desc{font-size:13px;color:var(--sub);margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
+  .vcard .meta{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--sub)}
+  .vcard .meta .sep::before{content:"·";margin:0 2px}
+
+  .empty{text-align:center;color:var(--sub);padding:56px 0;font-size:14px;line-height:2}
+  .empty b{display:block;font-size:15px;color:var(--text);font-weight:600}
+  .empty .act-btn{display:inline-block;width:auto;padding:9px 26px;margin-top:10px}
+
+  /* ===== 表单 ===== */
+  .form-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px}
+  .form-card + .form-card{margin-top:12px}
+  .f-label{font-size:13px;font-weight:600;color:var(--text);margin:15px 0 8px}
+  .f-label:first-child{margin-top:0}
+  .f-label .need{color:var(--danger)}
+  input[type=text],textarea,select{
+    width:100%;border:1px solid var(--line);border-radius:8px;outline:none;
+    padding:10px 12px;font-size:14px;color:var(--text);background:#fff;font-family:inherit;
+  }
+  input[type=text]:focus,textarea:focus,select:focus{border-color:var(--main)}
+  textarea{resize:none;min-height:60px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;padding:3px;gap:3px}
+  .seg button{flex:1;border:none;background:transparent;color:var(--sub);padding:8px 0;border-radius:6px;font-size:14px;cursor:pointer;font-weight:500}
+  .seg button.on{background:var(--main-bg);color:var(--main);font-weight:600}
+  .opt-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+  .opt-row .idx{width:26px;height:26px;border-radius:6px;background:#f0f1f3;color:var(--sub);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+  .opt-row .del{border:none;background:none;color:var(--sub);width:30px;height:30px;border-radius:6px;
+    font-size:15px;cursor:pointer;flex-shrink:0}
+  .opt-row .del:active{background:#f0f1f3}
+  .add-opt{width:100%;border:1px dashed #cfd4db;background:none;color:var(--main);
+    padding:9px 0;border-radius:8px;font-size:13px;cursor:pointer}
+  .preset-row{display:flex;gap:8px;flex-wrap:wrap}
+  .preset-row button{border:1px solid var(--line);background:#fff;color:var(--sub);
+    padding:7px 16px;border-radius:8px;font-size:13px;cursor:pointer}
+  .preset-row button.on{border-color:var(--main);color:var(--main);background:var(--main-bg);font-weight:600}
+  .switch-line{display:flex;align-items:center;justify-content:space-between;padding:2px 0}
+  .switch-line .t{font-size:14px}
+  .switch-line .hint{font-size:12px;color:var(--sub);margin-top:2px}
+  .sw{position:relative;width:44px;height:24px;flex-shrink:0;cursor:pointer}
+  .sw input{display:none}
+  .sw .track{position:absolute;inset:0;background:#d3d7dd;border-radius:999px;transition:.2s}
+  .sw .track::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+    background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .sw input:checked + .track{background:var(--main)}
+  .sw input:checked + .track::after{left:22px}
+  .btn-primary{
+    width:100%;border:none;background:var(--main);color:#fff;
+    font-size:15px;font-weight:600;padding:12px 0;border-radius:8px;cursor:pointer;margin-top:16px;
+  }
+  .btn-primary:active{opacity:.88}
+
+  /* ===== 详情 ===== */
+  .overlay{
+    position:fixed;inset:0;z-index:40;background:var(--bg);
+    display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+  .overlay.show{display:block}
+  .overlay .ov-inner{max-width:480px;margin:0 auto;padding:0 14px 100px}
+  .ov-top{
+    position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:8px;padding:0 10px;height:52px;margin:0 -14px 14px;
+  }
+  .ov-top .back{border:none;background:none;width:36px;height:36px;color:var(--text);cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .ov-top .tt{font-size:16px;font-weight:600}
+  .d-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px}
+  .d-title{font-size:18px;font-weight:600;line-height:1.5;margin-bottom:6px}
+  .d-desc{font-size:14px;color:var(--sub);line-height:1.65;white-space:pre-wrap}
+  .d-meta{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:12px;color:var(--sub);flex-wrap:wrap}
+  .d-meta .sep::before{content:"·";margin:0 2px}
+
+  .opt-item{
+    border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:8px;
+    position:relative;overflow:hidden;background:#fff;
+  }
+  .opt-item.can{cursor:pointer}
+  .opt-item.can:active{background:#fafbfc}
+  .opt-item.mine{border-color:var(--main);background:#f7faff}
+  .opt-item .opt-top{display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative;z-index:2}
+  .opt-item .opt-text{font-size:15px;display:flex;align-items:center;gap:8px}
+  .opt-item .tick{width:18px;height:18px;border:1.5px solid #c2c8d0;flex-shrink:0;position:relative;border-radius:50%}
+  .opt-item.square .tick{border-radius:4px}
+  .opt-item.sel .tick{border-color:var(--main);background:var(--main)}
+  .opt-item.sel .tick::after{content:"";position:absolute;left:5px;top:2px;width:4px;height:8px;
+    border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+  .opt-item .opt-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .opt-item .pct{font-size:13px;color:var(--main);font-weight:600}
+  .opt-item .cnt{font-size:12px;color:var(--sub)}
+  .opt-bar{position:absolute;left:0;top:0;bottom:0;background:#eaf1fd;z-index:1;transition:width .4s ease}
+  .opt-item.mine .opt-bar{background:#dce8fc}
+  .opt-item .mine-tag{font-size:11px;color:var(--main);background:var(--main-bg);padding:1px 6px;border-radius:4px}
+  .voter-chips{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:7px;position:relative;z-index:2}
+  .voter-chips span{font-size:12px;color:var(--sub);display:inline-flex;align-items:center;gap:4px}
+  .sec-title{font-size:14px;font-weight:600;margin:16px 0 10px;display:flex;align-items:center;gap:6px}
+  .act-row{display:flex;gap:10px;margin-top:14px}
+  .act-btn{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;
+    padding:10px 0;font-size:14px;cursor:pointer;color:var(--text)}
+  .act-btn:active{background:#fafbfc}
+  .act-btn.fav-on{color:var(--main);border-color:var(--main);background:var(--main-bg)}
+  .act-btn.warn{color:var(--danger)}
+  .result-tip{font-size:13px;color:var(--sub);background:#f0f1f3;border-radius:8px;padding:10px 12px;line-height:1.6;margin-bottom:10px}
+  .submit-fix{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--card);
+    border-top:1px solid var(--line);z-index:30;
+  }
+  .submit-fix .btn-primary{margin-top:0}
+  .submit-fix .sel-hint{text-align:center;font-size:12px;color:var(--sub);margin-bottom:7px}
+
+  /* ===== 我的 ===== */
+  .profile-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;margin-bottom:14px;
+  }
+  .profile-main{display:flex;align-items:center;gap:12px;cursor:pointer}
+  .profile-main .p-name{font-size:17px;font-weight:600}
+  .profile-main .p-sub{font-size:12px;color:var(--sub);margin-top:3px}
+  .profile-stats{display:flex;margin-top:15px;border-top:1px solid var(--line);padding-top:13px}
+  .profile-stats .st{flex:1;text-align:center}
+  .profile-stats .st + .st{border-left:1px solid var(--line)}
+  .profile-stats .st b{font-size:17px;display:block;font-weight:600}
+  .profile-stats .st span{font-size:12px;color:var(--sub)}
+  .edit-panel{margin-top:14px;border-top:1px solid var(--line);padding-top:13px}
+  .av-dots{display:flex;gap:10px;margin-top:8px}
+  .av-dots button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+  .av-dots button.on{border-color:var(--text);box-shadow:0 0 0 2px #fff inset}
+  .sub-tabs{display:flex;gap:8px;margin-bottom:10px}
+  .sub-tabs button{flex:1;border:1px solid var(--line);background:#fff;color:var(--sub);font-size:13.5px;
+    padding:9px 0;border-radius:8px;cursor:pointer;font-weight:500}
+  .sub-tabs button.on{color:var(--main);border-color:var(--main);background:var(--main-bg);font-weight:600}
+  .mini-card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;cursor:pointer;
+    display:flex;align-items:center;gap:10px}
+  .mini-card + .mini-card{margin-top:8px}
+  .mini-card:active{background:#fafbfc}
+  .mini-card .m-title{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-card .m-sub{font-size:12px;color:var(--sub);margin-top:3px}
+  .mini-card .m-body{flex:1;min-width:0}
+  .mini-card .m-arrow{color:#c2c8d0}
+
+  /* ===== 服务端设置 ===== */
+  .set-tip{font-size:12.5px;color:var(--sub);line-height:1.7;background:#f0f1f3;border-radius:8px;padding:10px 12px;margin-top:10px}
+
+  /* ===== 底部导航 ===== */
+  .tabbar{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
+    background:var(--card);border-top:1px solid var(--line);
+    display:flex;z-index:25;padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tabbar button{
+    flex:1;border:none;background:none;padding:8px 0 7px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--sub);font-size:11px;
+  }
+  .tabbar button.on{color:var(--main);font-weight:600}
+  .tabbar svg{width:22px;height:22px}
+  .tabbar .fab{width:26px;height:26px;border-radius:7px;background:var(--main);
+    display:flex;align-items:center;justify-content:center;margin:0 0 -1px}
+  .tabbar .fab svg{width:16px;height:16px;color:#fff}
+
+  /* ===== 引导 ===== */
+  #onboard{z-index:60;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
+  #onboard.show{display:flex}
+  .ob-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:26px 22px;width:100%;max-width:340px}
+  .ob-card h2{font-size:18px;margin-bottom:6px}
+  .ob-card p{font-size:13px;color:var(--sub);margin-bottom:18px}
+  .ob-card input{text-align:left}
+  .ob-card .btn-primary{margin-top:18px}
+
+  /* ===== 提示 ===== */
+  #toast{
+    position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(16px);
+    background:#33363d;color:#fff;font-size:13.5px;padding:9px 18px;border-radius:6px;
+    opacity:0;pointer-events:none;transition:.25s;z-index:99;white-space:nowrap;max-width:86%;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="logo">投票吧</div>
+    <div class="top-user" id="topUser" onclick="switchTab('mine')"></div>
+  </header>
+
+  <main>
+    <!-- ========== 大厅 ========== -->
+    <section id="view-hall" class="view active">
+      <div id="cloudBar"></div>
+      <div class="search-row"><input id="searchInput" placeholder="搜索投票标题" oninput="onSearch(this.value)"></div>
+      <div class="sort-tabs" id="sortTabs"></div>
+      <div class="cat-row" id="catRow"></div>
+      <div id="hallList" class="list"></div>
+    </section>
+
+    <!-- ========== 发布 ========== -->
+    <section id="view-create" class="view">
+      <div class="form-card">
+        <div class="f-label">投票标题 <span class="need">*</span></div>
+        <input type="text" id="fTitle" maxlength="40" placeholder="请输入投票标题">
+        <div class="f-label">补充说明（可不填）</div>
+        <textarea id="fDesc" maxlength="200" placeholder="补充背景信息，便于参与人理解"></textarea>
+        <div class="f-label">分类</div>
+        <select id="fCat"></select>
+      </div>
+      <div class="form-card">
+        <div class="f-label">投票类型</div>
+        <div class="seg" id="typeSeg">
+          <button id="segSingle" class="on" onclick="setFormType('single')">单选</button>
+          <button id="segMulti" onclick="setFormType('multi')">多选</button>
+        </div>
+        <div id="multiMaxWrap" style="display:none;margin-top:10px">
+          <div class="f-label">最多可选</div>
+          <select id="fMaxMulti"></select>
+        </div>
+        <div class="f-label">选项 <span class="need">*</span>（至少 2 个）</div>
+        <div id="optWrap"></div>
+        <button class="add-opt" onclick="addOptInput()">添加选项（最多 6 个）</button>
+      </div>
+      <div class="form-card">
+        <div class="f-label">截止时间</div>
+        <div class="preset-row" id="deadlineRow">
+          <button data-h="24" onclick="pickDeadline(this,24)">1 天</button>
+          <button data-h="72" class="on" onclick="pickDeadline(this,72)">3 天</button>
+          <button data-h="168" onclick="pickDeadline(this,168)">7 天</button>
+          <button data-h="720" onclick="pickDeadline(this,720)">30 天</button>
+        </div>
+        <div class="f-label">隐私设置</div>
+        <div class="switch-line">
+          <div><div class="t">匿名投票</div><div class="hint">开启后不展示投票人</div></div>
+          <label class="sw"><input type="checkbox" id="fAnon"><span class="track"></span></label>
+        </div>
+        <div class="f-label" style="margin-top:14px">结果可见性</div>
+        <select id="fVis">
+          <option value="always">随时可见</option>
+          <option value="after">投票后可见</option>
+          <option value="owner">仅发起人可见</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="submitVoteForm()">发布投票</button>
+    </section>
+
+    <!-- ========== 我的 ========== -->
+    <section id="view-mine" class="view">
+      <div class="profile-card" id="profileCard"></div>
+      <div class="sub-tabs" id="mineTabs">
+        <button class="on" onclick="setMineTab('created',this)">我发起的</button>
+        <button onclick="setMineTab('joined',this)">我参与的</button>
+        <button onclick="setMineTab('fav',this)">我的收藏</button>
+      </div>
+      <div id="mineList" class="list"></div>
+      <div class="mini-card" style="margin-top:14px" onclick="openSettings()">
+        <div class="m-body"><div class="m-title">服务端设置</div><div class="m-sub" id="settingsStatus">检测中…</div></div>
+        <div class="m-arrow">›</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 详情覆盖层 -->
+  <div id="detailOverlay" class="overlay"><div class="ov-inner" id="detailBody"></div></div>
+
+  <!-- 服务端设置 -->
+  <div id="settingsDlg" class="overlay">
+    <div class="ov-inner">
+      <div class="ov-top">
+        <button class="back" onclick="closeSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M14.5 5 7.5 12l7 7"/></svg></button>
+        <div class="tt">服务端设置</div>
+      </div>
+      <div class="d-card">
+        <div class="f-label">云端服务器地址</div>
+        <input type="text" id="apiInput" placeholder="https://你的worker名.你的子域.workers.dev">
+        <button class="btn-primary" onclick="saveApi()">保存并检测连接</button>
+        <div class="set-tip">
+          地址来自 Cloudflare Worker 部署完成后的访问地址（不含 /api/health）。<br>
+          部署方法见「投票吧-部署包」里的 Cloudflare 部署步骤.txt。<br>
+          未填写时投票数据仅保存在本机，无法与他人共享。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 首次引导 -->
+  <div id="onboard" class="overlay">
+    <div class="ob-card">
+      <h2>欢迎使用投票吧</h2>
+      <p>设置昵称与头像颜色后即可使用</p>
+      <input type="text" id="obName" maxlength="12" placeholder="请输入昵称">
+      <div class="f-label">头像颜色</div>
+      <div class="av-dots" id="obAvs"></div>
+      <button class="btn-primary" onclick="finishOnboard()">开始使用</button>
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <nav class="tabbar">
+    <button id="tab-hall" class="on" onclick="switchTab('hall')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/></svg>
+      大厅</button>
+    <button id="tab-create" onclick="switchTab('create')">
+      <span class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      发布</button>
+    <button id="tab-mine" onclick="switchTab('mine')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c1.6-3.8 4.6-5.3 7.5-5.3s5.9 1.5 7.5 5.3"/></svg>
+      我的</button>
+  </nav>
+
+  <div id="toast"></div>
+</div>
+
+<script>
+/* ================= 数据层（云端版） ================= */
+const KEY = 'toubaba_v3';
+const H = 3600e3, D = 24 * H;
+const CATS = ['全部','生活','美食','娱乐','学习','工作','其他'];
+const PALETTE = ['#2563eb','#0e7490','#047857','#b45309','#475569','#b91c1c'];
+
+let db = { user:null, api:'' };
+let state = { votes:[], cloudOk:null, lastError:'' }; // cloudOk: null=检测中 true/false
+
+function load(){
+  try{ const raw = localStorage.getItem(KEY); if(raw) db = JSON.parse(raw); }catch(e){}
+  if(!db || typeof db!=='object') db = { user:null, api:'' };
+  if(db.api==null) db.api = '';
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function av(name, color, px){
+  px = px || 24;
+  const ch = esc((String(name||'?').trim()[0]) || '?');
+  return `<span class="av" style="width:${px}px;height:${px}px;font-size:${Math.round(px*.45)}px;background:${color||PALETTE[4]}">${ch}</span>`;
+}
+function apiBase(){
+  let a = (db.api||'').trim();
+  if(!a) return '';
+  if(a.startsWith('http://127.0.0.1') || a.startsWith('http://localhost')){ /* 本地调试允许 */ }
+  else if(!a.startsWith('https://')) a = 'https://' + a;
+  return a.replace(/\/+$/,'');
+}
+
+/* ================= 云端接口 ================= */
+async function api(path, opts){
+  const base = apiBase();
+  if(!base) throw new Error('NO_API');
+  const res = await fetch(base + path, Object.assign({
+    headers:{'Content-Type':'application/json'}
+  }, opts||{}));
+  let data = null;
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok) throw new Error((data && data.error) || ('HTTP '+res.status));
+  return data;
+}
+function mapVote(r){
+  return {
+    id:r.id, title:r.title, desc:(r.descr!=null?r.descr:(r.desc||'')), category:r.category||'其他',
+    type:r.type||'single', maxMulti:r.max_multi!=null?r.max_multi:null,
+    anonymous:!!r.anonymous, visibility:r.visibility||'always',
+    deadline:r.deadline, created:r.created, closed:!!r.closed,
+    creatorId:r.creator_id, creatorName:r.creator_name||'', creatorColor:r.creator_color||PALETTE[4],
+    total:r.total||0, iVoted:!!r.i_voted, faved:!!r.faved, myCnt:r.my_cnt||0
+  };
+}
+
+/* 云端列表：定期轮询 */
+let listTimer = null;
+async function fetchList(silent){
+  try{
+    const uid2 = db.user ? db.user.id : '';
+    const data = await api('/api/votes?userId='+encodeURIComponent(uid2));
+    state.votes = (data.votes||[]).map(mapVote);
+    state.cloudOk = true; state.lastError = '';
+    if(!silent || curTab==='hall') renderHall();
+    if(curTab==='mine' && !profileEditing) renderMineList();
+    updateCloudBar();
+  }catch(e){
+    state.cloudOk = false; state.lastError = e.message;
+    if(!silent) renderHall();
+    updateCloudBar();
+  }
+}
+function startPoll(){
+  clearInterval(listTimer);
+  listTimer = setInterval(()=>{
+    if(!apiBase()) return;
+    fetchList(true);
+    if(detailId && detailMode==='view' && document.getElementById('detailOverlay').classList.contains('show')){
+      fetchDetail(detailId, true);
+    }
+  }, 5000);
+}
+
+/* ================= 视图切换 ================= */
+let curTab = 'hall';
+function switchTab(t){
+  curTab = t;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+t).classList.add('active');
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById('detailOverlay').classList.remove('show');
+  if(t==='hall') renderHall();
+  if(t==='mine') renderMine();
+  if(t==='create') initCreateForm();
+  if(t==='hall') fetchList(true);
+  window.scrollTo(0,0);
+}
+
+/* 云端状态条 */
+function updateCloudBar(){
+  const bar = document.getElementById('cloudBar');
+  const hasApi = !!apiBase();
+  if(!hasApi){
+    bar.innerHTML = `<span class="dot"></span><span style="flex:1">未连接云端服务器，投票数据无法共享</span><span class="lnk" onclick="openSettings()">去设置</span>`;
+    bar.className = 'cloud-bar err';
+  }else if(state.cloudOk===false){
+    bar.innerHTML = `<span class="dot"></span><span style="flex:1">服务器连接失败（${esc(state.lastError)}）</span><span class="lnk" onclick="fetchList(false)">重试</span>`;
+    bar.className = 'cloud-bar err';
+  }else{
+    bar.innerHTML = `<span class="dot"></span><span style="flex:1">已连接云端，数据约 5 秒自动刷新</span>`;
+    bar.className = 'cloud-bar ok';
+  }
+  const st = document.getElementById('settingsStatus');
+  if(st) st.textContent = !hasApi ? '未配置' : (state.cloudOk===false ? '连接失败' : (state.cloudOk ? '已连接' : '检测中…'));
+}
+
+/* ================= 大厅 ================= */
+let curSort = 'new', curCat = '全部', searchQ = '';
+function onSearch(v){ searchQ = v.trim(); renderHall(); }
+
+function renderHall(){
+  const sorts = [['new','最新'],['hot','最热'],['soon','即将截止']];
+  document.getElementById('sortTabs').innerHTML = sorts.map(([k,n])=>
+    `<button class="${curSort===k?'on':''}" onclick="setSort('${k}')">${n}</button>`).join('');
+  document.getElementById('catRow').innerHTML = CATS.map(c=>
+    `<button class="${curCat===c?'on':''}" onclick="setCat('${c}')">${c}</button>`).join('');
+
+  let vs = state.votes.slice();
+  if(curCat!=='全部') vs = vs.filter(v=>v.category===curCat);
+  if(searchQ) vs = vs.filter(v=>(v.title+v.desc).toLowerCase().includes(searchQ.toLowerCase()));
+  if(curSort==='new') vs.sort((a,b)=>b.created-a.created);
+  if(curSort==='hot') vs.sort((a,b)=>b.total-a.total);
+  if(curSort==='soon'){ vs = vs.filter(v=>!isExpired(v)); vs.sort((a,b)=>a.deadline-b.deadline); }
+
+  const box = document.getElementById('hallList');
+  if(!apiBase()){
+    box.innerHTML = `<div class="empty"><b>未连接服务器</b>配置云端地址后即可发起和参与投票<div class="act-btn" onclick="openSettings()">去设置</div></div>`;
+    return;
+  }
+  if(state.cloudOk===false){
+    box.innerHTML = `<div class="empty"><b>连接失败</b>无法获取投票数据<div class="act-btn" onclick="fetchList(false)">重试</div></div>`;
+    return;
+  }
+  if(!vs.length){
+    box.innerHTML = `<div class="empty"><b>暂无投票</b>点击下方「发布」创建第一个投票</div>`;
+    return;
+  }
+  box.innerHTML = vs.map(v=>{
+    const end = isExpired(v);
+    const left = fmtLeft(v);
+    const status = end ? '<span class="chip end">已截止</span>'
+      : (v.deadline-Date.now()<D ? `<span class="chip soon">即将截止 · ${left}</span>` : '<span class="chip run">进行中</span>');
+    const myPick = v.iVoted ? '<span class="chip">已参与</span>' : '';
+    const vis = v.visibility!=='always' ? `<span class="chip">结果${v.visibility==='owner'?'仅发起人可见':'投票后可见'}</span>` : '';
+    return `<div class="vcard" onclick="openDetail('${v.id}')">
+      <div class="row1">${status}<span class="chip">${esc(v.category)}</span>${myPick}${vis}</div>
+      <h3>${esc(v.title)}</h3>
+      ${v.desc?`<div class="desc">${esc(v.desc)}</div>`:''}
+      <div class="meta">${av(v.creatorName, v.creatorColor, 18)}<span>${esc(v.creatorName)}</span>
+        <span class="sep"></span><span>${v.total} 人参与</span>
+        <span class="sep"></span><span>${end?'已截止':left}</span></div>
+    </div>`;
+  }).join('');
+}
+function setSort(k){ curSort=k; renderHall(); }
+function setCat(k){ curCat=k; renderHall(); }
+
+/* ================= 时间工具 ================= */
+function isExpired(v){ return v.closed || Date.now() > v.deadline; }
+function fmtLeft(v){
+  if(v.closed) return '已提前截止';
+  const diff = v.deadline - Date.now();
+  if(diff<=0) return '已截止';
+  const d=Math.floor(diff/D), h=Math.floor((diff%D)/H), m=Math.floor((diff%H)/6e4);
+  if(d>0) return `剩 ${d} 天 ${h} 小时`;
+  if(h>0) return `剩 ${h} 小时 ${m} 分`;
+  return `剩 ${m} 分钟`;
+}
+function fmtDate(ts){
+  const d = new Date(ts);
+  return `${d.getMonth()+1}月${d.getDate()}日 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+/* ================= 详情页 ================= */
+let detailId = null, detailMode = 'view'; // view | select
+let selection = new Set();
+let cur = null; // 当前详情数据 {vote, options, counts, total, myChoice, voters}
+
+async function openDetail(id){
+  detailId = id;
+  selection = new Set();
+  document.getElementById('detailOverlay').classList.add('show');
+  document.querySelector('#detailOverlay').scrollTop = 0;
+  document.getElementById('detailBody').innerHTML = `<div class="empty">加载中…</div>`;
+  await fetchDetail(id, false);
+}
+async function fetchDetail(id, silent){
+  try{
+    const uid2 = db.user ? db.user.id : '';
+    const data = await api('/api/votes/'+id+'?userId='+encodeURIComponent(uid2));
+    if(detailId!==id) return;
+    cur = {
+      vote: mapVote(data.vote), options: data.options||[],
+      counts: data.counts||{}, total: data.total||0,
+      myChoice: (data.myBallot && data.myBallot.choice) || [],
+      voters: data.voters||null, resultsVisible: !!data.resultsVisible
+    };
+    if(!silent) detailMode = (!isExpired(cur.vote) && !cur.myChoice.length) ? 'select' : 'view';
+    renderDetail();
+  }catch(e){
+    if(detailId!==id) return;
+    if(!silent) document.getElementById('detailBody').innerHTML =
+      `<div class="empty"><b>加载失败</b>${esc(e.message==='NO_API'?'请先配置服务器地址':e.message)}<div class="act-btn" onclick="openDetail('${id}')">重试</div></div>`;
+  }
+}
+function closeDetail(){
+  document.getElementById('detailOverlay').classList.remove('show');
+  detailId = null; cur = null;
+  renderHall();
+}
+
+function renderDetail(){
+  if(!cur) return;
+  const v = cur.vote, me = db.user;
+  const end = isExpired(v), voted = cur.myChoice.length>0, mine = v.creatorId===me.id;
+  const showRes = cur.resultsVisible;
+  const total = cur.total;
+  const favOn = v.faved;
+
+  let optHtml = '';
+  const selecting = detailMode==='select' && !end;
+  cur.options.forEach(o=>{
+    const cnt = cur.counts[o.id]||0;
+    const pct = total? Math.round(cnt/total*100) : 0;
+    const iVotedThis = cur.myChoice.includes(o.id);
+    const barW = (showRes && total) ? pct : 0;
+    if(selecting){
+      const sel = selection.has(o.id);
+      optHtml += `<div class="opt-item can ${v.type==='multi'?'square':''} ${sel?'sel':''}" onclick="tapOption('${o.id}')">
+        <div class="opt-top"><div class="opt-text"><span class="tick"></span>${esc(o.text)}</div></div>
+      </div>`;
+    }else{
+      const voters = cur.voters && cur.voters[o.id];
+      optHtml += `<div class="opt-item ${iVotedThis?'mine':''}">
+        <div class="opt-bar" style="width:${barW}%"></div>
+        <div class="opt-top">
+          <div class="opt-text">${esc(o.text)} ${iVotedThis?'<span class="mine-tag">我的一票</span>':''}</div>
+          <div class="opt-right">${showRes?`<span class="cnt">${cnt} 票</span><span class="pct">${pct}%</span>`:'<span class="cnt">未公开</span>'}</div>
+        </div>
+        ${showRes && !v.anonymous && voters ? `<div class="voter-chips">${voters.map(u=>`<span>${av(u.name,u.color,16)}${esc(u.name)}</span>`).join('')}</div>`:''}
+      </div>`;
+    }
+  });
+
+  let footer = '';
+  if(selecting){
+    const maxN = v.type==='multi' ? (v.maxMulti||cur.options.length) : 1;
+    footer = `<div class="submit-fix">
+      ${v.type==='multi'?`<div class="sel-hint">已选 ${selection.size} / 最多 ${maxN} 项</div>`:''}
+      <button class="btn-primary" onclick="confirmBallot()">提交投票</button>
+    </div>`;
+  }else if(!end && voted && showRes){
+    footer = `<div class="act-row" style="margin-top:14px"><button class="act-btn" onclick="reVote()">修改选票</button></div>`;
+  }
+
+  const resultTip = showRes ? '' : (v.visibility==='owner'
+    ? `<div class="result-tip">发起人设置了结果仅自己可见。</div>`
+    : `<div class="result-tip">提交投票后即可查看结果。</div>`);
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="ov-top">
+      <button class="back" onclick="closeDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M14.5 5 7.5 12l7 7"/></svg></button>
+      <div class="tt">投票详情</div>
+    </div>
+    <div class="d-card">
+      <div class="row1" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${end?'<span class="chip end">已截止</span>':`<span class="chip soon">${fmtLeft(v)}</span>`}
+        <span class="chip">${v.type==='multi'?'多选 · 最多 '+(v.maxMulti||cur.options.length)+' 项':'单选'}</span>
+        <span class="chip">${v.anonymous?'匿名':'实名'}</span>
+      </div>
+      <div class="d-title">${esc(v.title)}</div>
+      ${v.desc?`<div class="d-desc">${esc(v.desc)}</div>`:''}
+      <div class="d-meta">
+        ${av(v.creatorName, v.creatorColor, 20)}<span>${esc(v.creatorName)} 发起</span>
+        <span class="sep"></span><span>${esc(v.category)}</span>
+        <span class="sep"></span><span>${total} 人参与</span>
+        <span class="sep"></span><span>${end?'截止于 '+fmtDate(v.deadline):fmtDate(v.deadline)+' 截止'}</span>
+      </div>
+    </div>
+    <div class="sec-title">选项${showRes?`（共 ${total} 票）`:''}</div>
+    ${resultTip}
+    ${optHtml}
+    ${footer}
+    <div class="act-row">
+      <button class="act-btn ${favOn?'fav-on':''}" onclick="toggleFav()">${favOn?'★ 已收藏':'☆ 收藏'}</button>
+      <button class="act-btn" onclick="shareVote('${v.id}')">分享</button>
+    </div>
+    ${mine?`<div class="act-row">
+      ${end?'':`<button class="act-btn" onclick="closeEarly()">提前截止</button>`}
+      <button class="act-btn warn" onclick="delVote()">删除投票</button>
+    </div>`:''}
+  `;
+}
+
+function tapOption(oid){
+  const v = cur.vote;
+  if(v.type==='single'){ selection = new Set([oid]); }
+  else{
+    const maxN = v.maxMulti || cur.options.length;
+    if(selection.has(oid)) selection.delete(oid);
+    else if(selection.size>=maxN){ toast(`最多可选 ${maxN} 项`); return; }
+    else selection.add(oid);
+  }
+  renderDetail();
+}
+async function confirmBallot(){
+  if(!cur) return;
+  if(!selection.size){ toast('请先选择选项'); return; }
+  const me = db.user;
+  try{
+    await api('/api/votes/'+cur.vote.id+'/vote', {
+      method:'POST',
+      body: JSON.stringify({userId:me.id, userName:me.name, color:me.color, choice:[...selection]})
+    });
+    const had = cur.myChoice.length>0;
+    detailMode = 'view';
+    await fetchDetail(cur.vote.id, true);
+    renderDetail();
+    toast(had?'已修改选票':'投票成功');
+    fetchList(true);
+  }catch(e){
+    toast(e.message==='NO_API'?'请先配置服务器地址':('提交失败：'+e.message));
+  }
+}
+function reVote(){
+  detailMode='select';
+  selection = new Set(cur.myChoice || []);
+  renderDetail();
+}
+
+async function toggleFav(){
+  if(!cur) return;
+  try{
+    await api('/api/votes/'+cur.vote.id+'/fav', {
+      method:'POST', body: JSON.stringify({userId:db.user.id})
+    });
+    cur.vote.faved = !cur.vote.faved;
+    renderDetail();
+    toast(cur.vote.faved?'已收藏':'已取消收藏');
+    fetchList(true);
+  }catch(e){ toast('操作失败：'+e.message); }
+}
+
+function shareVote(id){
+  if(!cur) return;
+  const v = cur.vote;
+  const opts = cur.options.map(o=>o.text).join(' / ');
+  const link = location.origin + location.pathname + '#v=' + id;
+  const text = `【投票吧】${v.title}\n${v.desc?v.desc+'\n':''}选项：${opts}\n截止：${fmtDate(v.deadline)}\n参与投票：${link}`;
+  if(navigator.share){
+    navigator.share({title:'投票吧·'+v.title, text}).then(()=>{}).catch(()=>{ copyText(text); });
+  }else{
+    copyText(text);
+  }
+}
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>toast('分享内容已复制'))
+      .catch(()=>fallbackCopy(t));
+  }else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  const ta = document.createElement('textarea');
+  ta.value = t; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast('分享内容已复制'); }catch(e){ toast('复制失败，请手动复制'); }
+  document.body.removeChild(ta);
+}
+
+async function closeEarly(){
+  if(!confirm('确定提前截止该投票？截止后不可再投票。')) return;
+  try{
+    await api('/api/votes/'+detailId+'/close', {
+      method:'POST', body: JSON.stringify({userId:db.user.id})
+    });
+    await fetchDetail(detailId, true); renderDetail();
+    toast('投票已截止');
+    fetchList(true);
+  }catch(e){ toast('操作失败：'+e.message); }
+}
+async function delVote(){
+  if(!confirm('确定删除该投票？删除后不可恢复。')) return;
+  try{
+    await api('/api/votes/'+detailId+'?userId='+encodeURIComponent(db.user.id), {method:'DELETE'});
+    const id = detailId;
+    closeDetail();
+    toast('已删除');
+    await fetchList(true);
+  }catch(e){ toast('操作失败：'+e.message); }
+}
+
+/* ================= 发布表单 ================= */
+let formType = 'single', deadlineHours = 72;
+function initCreateForm(){
+  const sel = document.getElementById('fCat');
+  if(!sel.options.length){
+    CATS.slice(1).forEach(c=>{
+      const op = document.createElement('option'); op.value=c; op.textContent=c; sel.appendChild(op);
+    });
+  }
+  if(!document.getElementById('optWrap').children.length){ addOptInput(); addOptInput(); }
+  updateMultiMax();
+}
+function setFormType(t){
+  formType = t;
+  document.getElementById('segSingle').classList.toggle('on', t==='single');
+  document.getElementById('segMulti').classList.toggle('on', t==='multi');
+  document.getElementById('multiMaxWrap').style.display = t==='multi'?'block':'none';
+  updateMultiMax();
+}
+function updateMultiMax(){
+  const sel = document.getElementById('fMaxMulti');
+  const n = document.querySelectorAll('#optWrap input').length;
+  const cur2 = parseInt(sel.value)||2;
+  sel.innerHTML = '';
+  for(let i=2;i<=Math.max(n,2);i++){
+    const op = document.createElement('option'); op.value=i; op.textContent='最多选 '+i+' 项'; sel.appendChild(op);
+  }
+  sel.value = Math.min(cur2, Math.max(n,2));
+}
+function addOptInput(){
+  const wrap = document.getElementById('optWrap');
+  const n = wrap.children.length;
+  if(n>=6){ toast('最多 6 个选项'); return; }
+  const row = document.createElement('div');
+  row.className='opt-row';
+  row.innerHTML = `<span class="idx">${String.fromCharCode(65+n)}</span>
+    <input type="text" maxlength="30" placeholder="选项 ${n+1}">
+    ${n>=2?`<button class="del" onclick="this.parentNode.remove();refreshOptIdx()">×</button>`:''}`;
+  wrap.appendChild(row);
+  updateMultiMax();
+}
+function refreshOptIdx(){
+  document.querySelectorAll('#optWrap .opt-row').forEach((r,i)=>{
+    r.querySelector('.idx').textContent = String.fromCharCode(65+i);
+  });
+  updateMultiMax();
+}
+function pickDeadline(btn,h){
+  deadlineHours = h;
+  document.querySelectorAll('#deadlineRow button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+async function submitVoteForm(){
+  const me = db.user;
+  const title = document.getElementById('fTitle').value.trim();
+  const desc = document.getElementById('fDesc').value.trim();
+  const cat = document.getElementById('fCat').value;
+  const optInputs = [...document.querySelectorAll('#optWrap input')].map(i=>i.value.trim());
+  if(!title){ toast('请填写投票标题'); return; }
+  const opts = optInputs.filter(t=>t);
+  if(opts.length<2){ toast('请至少填写 2 个选项'); return; }
+  const isMulti = formType==='multi';
+  let maxMulti = null;
+  if(isMulti){
+    maxMulti = parseInt(document.getElementById('fMaxMulti').value)||opts.length;
+    if(maxMulti>opts.length) maxMulti = opts.length;
+  }
+  try{
+    const data = await api('/api/votes', {
+      method:'POST',
+      body: JSON.stringify({
+        id:'v'+uid(), title, desc, category:cat, type:formType, maxMulti,
+        anonymous:document.getElementById('fAnon').checked,
+        visibility:document.getElementById('fVis').value,
+        deadline: Date.now()+deadlineHours*H,
+        creatorId: me.id, creatorName: me.name, creatorColor: me.color,
+        options: opts.map(t=>({id:'o'+uid(), text:t}))
+      })
+    });
+    document.getElementById('fTitle').value=''; document.getElementById('fDesc').value='';
+    document.getElementById('fAnon').checked=false; document.getElementById('fVis').value='always';
+    document.getElementById('optWrap').innerHTML=''; addOptInput(); addOptInput(); refreshOptIdx();
+    toast('发布成功');
+    fetchList(true);
+    openDetail(data.id);
+  }catch(e){
+    toast(e.message==='NO_API'?'请先配置服务器地址':('发布失败：'+e.message));
+  }
+}
+
+/* ================= 我的 ================= */
+let mineTab = 'created', profileEditing = false;
+function setMineTab(t, btn){
+  mineTab = t;
+  document.querySelectorAll('#mineTabs button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderMineList();
+}
+function renderMine(){
+  const me = db.user;
+  document.getElementById('topUser').innerHTML =
+    `${av(me.name, me.color, 24)}<span class="nm">${esc(me.name)}</span>`;
+
+  const created = state.votes.filter(v=>v.creatorId===me.id);
+  const joined = state.votes.filter(v=>v.iVoted);
+  const favs = state.votes.filter(v=>v.faved);
+  const pc = document.getElementById('profileCard');
+  if(profileEditing){
+    pc.innerHTML = `
+      <div class="f-label">昵称</div>
+      <input type="text" id="editName" maxlength="12" value="${esc(me.name)}">
+      <div class="f-label">头像颜色</div>
+      <div class="av-dots" id="editAvs"></div>
+      <div class="act-row">
+        <button class="act-btn" style="border-color:var(--main);color:var(--main)" onclick="saveProfile()">保存</button>
+        <button class="act-btn" onclick="cancelProfile()">取消</button>
+      </div>`;
+    document.getElementById('editAvs').innerHTML = PALETTE.map(c=>
+      `<button class="${c===me.color?'on':''}" style="background:${c}" onclick="pickEditAv(this,'${c}')"></button>`).join('');
+  }else{
+    pc.innerHTML = `
+      <div class="profile-main" onclick="profileEditing=true;renderMine()">
+        ${av(me.name, me.color, 48)}
+        <div><div class="p-name">${esc(me.name)}</div><div class="p-sub">点击编辑资料</div></div>
+      </div>
+      <div class="profile-stats">
+        <div class="st"><b>${created.length}</b><span>发起</span></div>
+        <div class="st"><b>${joined.length}</b><span>参与</span></div>
+        <div class="st"><b>${favs.length}</b><span>收藏</span></div>
+      </div>`;
+  }
+  renderMineList();
+  updateCloudBar();
+}
+function renderMineList(){
+  if(!db.user) return;
+  const me = db.user;
+  const created = state.votes.filter(v=>v.creatorId===me.id);
+  const joined = state.votes.filter(v=>v.iVoted);
+  const favs = state.votes.filter(v=>v.faved);
+  const map = {created, joined, fav: favs};
+  const vs = map[mineTab];
+  const box = document.getElementById('mineList');
+  if(!vs.length){
+    const tips = {created:'暂无发起的投票，点击下方「发布」创建',joined:'暂无参与的投票，去大厅看看',fav:'暂无收藏，可在投票详情页收藏'};
+    box.innerHTML = `<div class="empty"><b>暂无内容</b>${tips[mineTab]}</div>`;
+    return;
+  }
+  box.innerHTML = vs.map(v=>{
+    const end = isExpired(v);
+    const sub = mineTab==='created'
+      ? `${end?'已截止':fmtLeft(v)} · ${v.total} 人参与`
+      : mineTab==='joined'
+        ? `已投 ${v.myCnt} 项 · ${end?'已截止':fmtLeft(v)}`
+        : `发起人：${esc(v.creatorName)} · ${v.total} 人参与`;
+    return `<div class="mini-card" onclick="openDetail('${v.id}')">
+      <div class="m-body"><div class="m-title">${esc(v.title)}</div><div class="m-sub">${sub}</div></div>
+      <div class="m-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+let editColor = null;
+function pickEditAv(btn,c){ editColor=c;
+  document.querySelectorAll('#editAvs button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function saveProfile(){
+  const name = document.getElementById('editName').value.trim();
+  if(!name){ toast('昵称不能为空'); return; }
+  db.user.name = name;
+  if(editColor) db.user.color = editColor;
+  save(); profileEditing=false; editColor=null; renderMine(); toast('资料已更新');
+}
+function cancelProfile(){ profileEditing=false; editColor=null; renderMine(); }
+
+/* ================= 服务端设置 ================= */
+function openSettings(){
+  document.getElementById('apiInput').value = db.api||'';
+  document.getElementById('settingsDlg').classList.add('show');
+}
+function closeSettings(){
+  document.getElementById('settingsDlg').classList.remove('show');
+}
+async function saveApi(){
+  const v = document.getElementById('apiInput').value.trim();
+  db.api = v; save();
+  updateCloudBar();
+  if(!v){ toast('已清除服务器地址'); closeSettings(); renderHall(); return; }
+  toast('正在检测连接…');
+  try{
+    await api('/api/health');
+    state.cloudOk = true;
+    toast('连接成功');
+    closeSettings();
+    fetchList(false);
+  }catch(e){
+    state.cloudOk = false;
+    toast('连接失败：'+(e.message==='NO_API'?'地址无效':e.message));
+  }
+  updateCloudBar();
+}
+
+/* ================= 引导 ================= */
+let obColor = PALETTE[0];
+function initOnboard(){
+  document.getElementById('obAvs').innerHTML = PALETTE.map((c,i)=>
+    `<button class="${i===0?'on':''}" style="background:${c}" onclick="pickObAv(this,'${c}')"></button>`).join('');
+  document.getElementById('onboard').classList.add('show');
+}
+function pickObAv(btn,c){ obColor=c;
+  document.querySelectorAll('#obAvs button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function finishOnboard(){
+  const name = document.getElementById('obName').value.trim();
+  if(!name){ toast('请输入昵称'); return; }
+  db.user = {id:'u'+uid(), name, color:obColor};
+  save();
+  document.getElementById('onboard').classList.remove('show');
+  renderTopUser();
+  renderHall();
+  fetchList(true);
+  toast('欢迎使用投票吧');
+}
+function renderTopUser(){
+  if(db.user) document.getElementById('topUser').innerHTML =
+    `${av(db.user.name, db.user.color, 24)}<span class="nm">${esc(db.user.name)}</span>`;
+}
+
+/* ================= 分享链接进入 ================= */
+function checkHash(){
+  const m = location.hash.match(/#v=([\w-]+)/);
+  if(m && db.user){
+    setTimeout(()=>openDetail(m[1]), 400);
+  }
+  history.replaceState(null,'',location.pathname+location.search);
+}
+
+/* ================= 提示 ================= */
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ================= 启动 ================= */
+load();
+if(db.user){
+  renderTopUser();
+}
+updateCloudBar();
+renderHall();
+fetchList(true);
+if(!db.user) initOnboard();
+checkHash();
+startPoll();
+</script>
+</body>
+</html>
