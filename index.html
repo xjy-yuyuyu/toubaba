@@ -363,9 +363,9 @@
         <input type="text" id="apiInput" placeholder="https://你的worker名.你的子域.workers.dev">
         <button class="btn-primary" onclick="saveApi()">保存并检测连接</button>
         <div class="set-tip">
-          地址来自 Cloudflare Worker 部署完成后的访问地址（不含 /api/health）。<br>
-          部署方法见「投票吧-部署包」里的 Cloudflare 部署步骤.txt。<br>
-          未填写时投票数据仅保存在本机，无法与他人共享。
+          已内置默认云端地址，同学们无需任何配置即可使用。<br>
+          此页仅在有特殊需要时修改（如更换服务器）。<br>
+          网页本体：GitHub Pages ／ 云端：Cloudflare Workers + D1。
         </div>
       </div>
     </div>
@@ -402,6 +402,7 @@
 <script>
 /* ================= 数据层（云端版） ================= */
 const KEY = 'toubaba_v3';
+const DEFAULT_API = 'https://api.toubabazwhale.top';
 const H = 3600e3, D = 24 * H;
 const CATS = ['全部','生活','美食','娱乐','学习','工作','其他'];
 const PALETTE = ['#2563eb','#0e7490','#047857','#b45309','#475569','#b91c1c'];
@@ -412,7 +413,7 @@ let state = { votes:[], cloudOk:null, lastError:'' }; // cloudOk: null=检测中
 function load(){
   try{ const raw = localStorage.getItem(KEY); if(raw) db = JSON.parse(raw); }catch(e){}
   if(!db || typeof db!=='object') db = { user:null, api:'' };
-  if(db.api==null) db.api = '';
+  if(!db.api) db.api = DEFAULT_API;
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -423,7 +424,7 @@ function av(name, color, px){
   return `<span class="av" style="width:${px}px;height:${px}px;font-size:${Math.round(px*.45)}px;background:${color||PALETTE[4]}">${ch}</span>`;
 }
 function apiBase(){
-  let a = (db.api||'').trim();
+  let a = (db.api || DEFAULT_API).trim();
   if(!a) return '';
   if(a.startsWith('http://127.0.0.1') || a.startsWith('http://localhost')){ /* 本地调试允许 */ }
   else if(!a.startsWith('https://')) a = 'https://' + a;
@@ -986,7 +987,7 @@ async function saveApi(){
   const v = document.getElementById('apiInput').value.trim();
   db.api = v; save();
   updateCloudBar();
-  if(!v){ toast('已清除服务器地址'); closeSettings(); renderHall(); return; }
+  if(!v){ db.api = DEFAULT_API; save(); toast('已恢复默认云端地址'); closeSettings(); renderHall(); fetchList(false); return; }
   toast('正在检测连接…');
   try{
     await api('/api/health');
